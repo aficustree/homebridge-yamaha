@@ -463,7 +463,7 @@ YamahaAVRAccessory.prototype = {
         var yamaha = this.yamaha;
 
         informationService
-            .setCharacteristic(Characteristic.Name, this.name + Math.random())
+            .setCharacteristic(Characteristic.Name, this.name)
             .setCharacteristic(Characteristic.Manufacturer, "Yamaha")
             .setCharacteristic(Characteristic.Model, this.sysConfig.YAMAHA_AV.System[0].Config[0].Model_Name[0])
             .setCharacteristic(Characteristic.SerialNumber, this.sysConfig.YAMAHA_AV.System[0].Config[0].System_ID[0]);
