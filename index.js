@@ -65,6 +65,9 @@ function YamahaAVRPlatform(log, config) {
     this.maxVolume = config["max_volume"] || -20.0;
     this.gapVolume = this.maxVolume - this.minVolume;
     this.showInputName = config["show_input_name"] || "no";
+    this.showSwitch = config["show_switch"] || "no";
+    this.showBulb = config["show_bulb"] || "no";
+    this.showSpeaker = config["show_speaker"] || "no";
     this.setMainInputTo = config["setMainInputTo"];
     this.expectedDevices = config["expected_devices"] || 100;
     this.discoveryTimeout = config["discovery_timeout"] || 30;
@@ -251,6 +254,9 @@ function YamahaSwitch(log, config, name, yamaha, sysConfig, preset) {
     this.maxVolume = config["max_volume"] || -20.0;
     this.gapVolume = this.maxVolume - this.minVolume;
     this.showInputName = config["show_input_name"] || "no";
+    this.showSwitch = config["show_switch"] || "no";
+    this.showBulb = config["show_bulb"] || "no";
+    this.showSpeaker = config["show_speaker"] || "no";
     this.preset = preset;
 }
 
@@ -430,6 +436,9 @@ function YamahaAVRAccessory(log, config, name, yamaha, sysConfig) {
     this.maxVolume = config["max_volume"] || -20.0;
     this.gapVolume = this.maxVolume - this.minVolume;
     this.showInputName = config["show_input_name"] || "no";
+    this.showSwitch = config["show_switch"] || "no";
+    this.showBulb = config["show_bulb"] || "no";
+    this.showSpeaker = config["show_speaker"] || "no";
 }
 
 YamahaAVRAccessory.prototype = {
@@ -467,141 +476,147 @@ YamahaAVRAccessory.prototype = {
             .setCharacteristic(Characteristic.Manufacturer, "Yamaha")
             .setCharacteristic(Characteristic.Model, this.sysConfig.YAMAHA_AV.System[0].Config[0].Model_Name[0])
             .setCharacteristic(Characteristic.SerialNumber, this.sysConfig.YAMAHA_AV.System[0].Config[0].System_ID[0]);
+        
+        if(this.showSwitch=="yes") {
+            var switchService = new Service.Switch("Power - "+this.name);
+            switchService.getCharacteristic(Characteristic.On)
+                .on('get', function(callback, context) {
+                    yamaha.isOn().then(
+                        function(result) {
+                            callback(false, result);
+                        }.bind(this),
+                        function(error) {
+                            callback(error, false);
+                        }.bind(this)
+                    );
+                }.bind(this))
+                .on('set', function(powerOn, callback) {
+                    this.setPlaying(powerOn).then(function() {
+                        callback(false, powerOn);
+                    }, function(error) {
+                        callback(error, !powerOn); //TODO: Actually determine and send real new status.
+                    });
+                }.bind(this));
+        }
 
-        var switchService = new Service.Switch("Yamaha Power");
-        switchService.getCharacteristic(Characteristic.On)
-            .on('get', function(callback, context) {
-                yamaha.isOn().then(
-                    function(result) {
-                        callback(false, result);
-                    }.bind(this),
-                    function(error) {
-                        callback(error, false);
-                    }.bind(this)
-                );
-            }.bind(this))
-            .on('set', function(powerOn, callback) {
-                this.setPlaying(powerOn).then(function() {
-                    callback(false, powerOn);
-                }, function(error) {
-                    callback(error, !powerOn); //TODO: Actually determine and send real new status.
+        if(this.showBulb=="yes") {
+            var mainService = new Service.Lightbulb(this.name);
+            mainService.getCharacteristic(Characteristic.On)
+                .on('get', function(callback, context) {
+                    yamaha.isOn().then(
+                        function(result) {
+                            callback(false, result);
+                        }.bind(this),
+                        function(error) {
+                            callback(error, false);
+                        }.bind(this)
+                    );
+                }.bind(this))
+                .on('set', function(powerOn, callback) {
+                    this.setPlaying(powerOn).then(function() {
+                        callback(false, powerOn);
+                    }, function(error) {
+                        callback(error, !powerOn); //TODO: Actually determine and send real new status.
+                    });
+                }.bind(this));
+
+            mainService.addCharacteristic(new Characteristic.Brightness())
+                .on('get', function(callback, context) {
+                    yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
+                        var v = basicInfo.getVolume() / 10.0;
+                        var p = 100 * ((v - that.minVolume) / that.gapVolume);
+                        p = p < 0 ? 0 : p > 100 ? 100 : Math.round(p);
+                        debug("Got volume percent of " + p + "%");
+                        callback(false, p);
+                    }, function(error) {
+                        callback(error, 0);
+                    });
+                })
+                .on('set', function(p, callback) {
+                    var v = ((p / 100) * that.gapVolume) + that.minVolume;
+                    v = Math.round(v * 10.0);
+                    debug("Setting volume to " + v);
+                    yamaha.setVolumeTo(v, that.zone).then(function() {
+                        callback(false, p);
+                    }, function(error) {
+                        callback(error, volCx.value);
+                    });
                 });
-            }.bind(this));
 
-        var mainService = new Service.Lightbulb(this.name);
-        mainService.getCharacteristic(Characteristic.On)
-            .on('get', function(callback, context) {
-                yamaha.isOn().then(
-                    function(result) {
-                        callback(false, result);
-                    }.bind(this),
-                    function(error) {
-                        callback(error, false);
-                    }.bind(this)
-                );
-            }.bind(this))
-            .on('set', function(powerOn, callback) {
-                this.setPlaying(powerOn).then(function() {
-                    callback(false, powerOn);
-                }, function(error) {
-                    callback(error, !powerOn); //TODO: Actually determine and send real new status.
-                });
-            }.bind(this));
+        }
 
-        mainService.addCharacteristic(new Characteristic.Brightness())
-            .on('get', function(callback, context) {
-                yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
-                    var v = basicInfo.getVolume() / 10.0;
-                    var p = 100 * ((v - that.minVolume) / that.gapVolume);
-                    p = p < 0 ? 0 : p > 100 ? 100 : Math.round(p);
-                    debug("Got volume percent of " + p + "%");
-                    callback(false, p);
-                }, function(error) {
-                    callback(error, 0);
-                });
-            })
-            .on('set', function(p, callback) {
-                var v = ((p / 100) * that.gapVolume) + that.minVolume;
-                v = Math.round(v * 10.0);
-                debug("Setting volume to " + v);
-                yamaha.setVolumeTo(v, that.zone).then(function() {
-                    callback(false, p);
-                }, function(error) {
-                    callback(error, volCx.value);
-                });
-            });
+        if(this.showSpeaker=="yes") {
+            var audioDeviceService = new Service.Speaker("Speaker - ",this.name);
+            audioDeviceService.addCharacteristic(Characteristic.Volume);
+            var volCx = audioDeviceService.getCharacteristic(Characteristic.Volume);
 
+            volCx.on('get', function(callback, context) {
+                    yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
+                        var v = basicInfo.getVolume() / 10.0;
+                        var p = 100 * ((v - that.minVolume) / that.gapVolume);
+                        p = p < 0 ? 0 : p > 100 ? 100 : Math.round(p);
+                        debug("Got volume percent of " + p + "%");
+                        callback(false, p);
+                    }, function(error) {
+                        callback(error, 0);
+                    });
+                })
+                .on('set', function(p, callback) {
+                    var v = ((p / 100) * that.gapVolume) + that.minVolume;
+                    v = Math.round(v * 10.0);
+                    debug("Setting volume to " + v);
+                    yamaha.setVolumeTo(v, that.zone).then(function() {
+                        callback(false, p);
+                    }, function(error) {
+                        callback(error, volCx.value);
+                    });
+                })
+                .getValue(null, null); // force an asynchronous get
 
-        var audioDeviceService = new Service.Speaker("Speaker");
-        audioDeviceService.addCharacteristic(Characteristic.Volume);
-        var volCx = audioDeviceService.getCharacteristic(Characteristic.Volume);
+            var mutingCx = audioDeviceService.getCharacteristic(Characteristic.Mute);
 
-        volCx.on('get', function(callback, context) {
-                yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
-                    var v = basicInfo.getVolume() / 10.0;
-                    var p = 100 * ((v - that.minVolume) / that.gapVolume);
-                    p = p < 0 ? 0 : p > 100 ? 100 : Math.round(p);
-                    debug("Got volume percent of " + p + "%");
-                    callback(false, p);
-                }, function(error) {
-                    callback(error, 0);
-                });
-            })
-            .on('set', function(p, callback) {
-                var v = ((p / 100) * that.gapVolume) + that.minVolume;
-                v = Math.round(v * 10.0);
-                debug("Setting volume to " + v);
-                yamaha.setVolumeTo(v, that.zone).then(function() {
-                    callback(false, p);
-                }, function(error) {
-                    callback(error, volCx.value);
-                });
-            })
-            .getValue(null, null); // force an asynchronous get
+            mutingCx.on('get', function(callback, context) {
+                    yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
+                        callback(false, basicInfo.isMuted());
+                    }, function(error) {
+                        callback(error, 0);
+                    });
+                })
+                .on('set', function(v, callback) {
+                    var zone_name = 'Main_Zone';
+                    if (that.zone != 1) {
+                        zone_name = 'Zone_' + that.zone;
+                    }
 
-        var mutingCx = audioDeviceService.getCharacteristic(Characteristic.Mute);
+                    var mute_xml = '<YAMAHA_AV cmd="PUT"><' + zone_name + '><Volume><Mute>';
+                    if (v) {
+                        mute_xml += 'On';
+                    } else {
+                        mute_xml += 'Off';
+                    }
+                    mute_xml += '</Mute></Volume></' + zone_name + '></YAMAHA_AV>';
 
-        mutingCx.on('get', function(callback, context) {
-                yamaha.getBasicInfo(that.zone).then(function(basicInfo) {
-                    callback(false, basicInfo.isMuted());
-                }, function(error) {
-                    callback(error, 0);
-                });
-            })
-            .on('set', function(v, callback) {
-                var zone_name = 'Main_Zone';
-                if (that.zone != 1) {
-                    zone_name = 'Zone_' + that.zone;
-                }
-
-                var mute_xml = '<YAMAHA_AV cmd="PUT"><' + zone_name + '><Volume><Mute>';
-                if (v) {
-                    mute_xml += 'On';
-                } else {
-                    mute_xml += 'Off';
-                }
-                mute_xml += '</Mute></Volume></' + zone_name + '></YAMAHA_AV>';
-
-                yamaha.SendXMLToReceiver(mute_xml).then(function() {
-                    callback(false, v);
-                }, function(error) {
-                    callback(error, mutingCx.value);
-                });
-            })
-            .getValue(null, null); // force an asynchronous get
+                    yamaha.SendXMLToReceiver(mute_xml).then(function() {
+                        callback(false, v);
+                    }, function(error) {
+                        callback(error, mutingCx.value);
+                    });
+                })
+                .getValue(null, null); // force an asynchronous get
 
 
-        var inputService = new YamahaAVRPlatform.InputService("Input Functions");
+            var inputService = new YamahaAVRPlatform.InputService("Input Functions");
 
-        var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
-        inputCx.on('get', function(callback, context) {
-                yamaha.getBasicInfo().then(function(basicInfo) {
-                    callback(false, basicInfo.getCurrentInput());
-                }, function(error) {
-                    callback(error, 0);
-                });
-            })
-            .getValue(null, null); // force an asynchronous get
+            var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
+            inputCx.on('get', function(callback, context) {
+                    yamaha.getBasicInfo().then(function(basicInfo) {
+                        callback(false, basicInfo.getCurrentInput());
+                    }, function(error) {
+                        callback(error, 0);
+                    });
+                })
+                .getValue(null, null); // force an asynchronous get
+        }
 
         if (this.showInputName == "yes") {
             inputService.addCharacteristic(YamahaAVRPlatform.InputName);

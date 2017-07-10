@@ -19,6 +19,9 @@ config.json
 - max_volume -
 - setMainInputTo - Sets input to this when turning on, no default.
 - show_input_name - Creates a button to display which input is selected, defaults to no
+- show_switch - creates a switch to power on/off the whole receiver 
+- show_bulb - creates a lightbulb for the receiver w/ brightness as a volume slider
+- show_speaker - creates a speaker accessory for the receiver zone with a volume slider
 - manual_addresses - Only required if Bonjour/Autodetection doesn't work.
 - expected_devices - Maximum number of accessories created, defaults to 100
 - discovery_timeout - How long to stay in discovery mode, defaults to 30
