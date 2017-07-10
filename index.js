@@ -158,8 +158,8 @@ YamahaAVRPlatform.prototype = {
                                                     function(zoneInfo) {
                                                         var z = Object.keys(zoneInfo.YAMAHA_AV)[1];
                                                         zoneName = zoneInfo.YAMAHA_AV[z][0].Config[0].Name[0].Zone[0];
-                                                        this.log("Adding zone controller for", zoneName + " - " + sysId);
-                                                        var accessory = new YamahaZone(this.log, this.config, zoneName + " - " + sysId, yamaha, sysConfig, z);
+                                                        this.log("Adding zone controller for", zoneName + " - " + name);
+                                                        var accessory = new YamahaZone(this.log, this.config, zoneName + " - " + name, yamaha, sysConfig, z);
                                                         accessories.push(accessory);
                                                     }.bind(this)
                                                 );
