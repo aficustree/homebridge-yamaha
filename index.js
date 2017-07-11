@@ -604,19 +604,18 @@ YamahaAVRAccessory.prototype = {
                 })
                 .getValue(null, null); // force an asynchronous get
 
-
-            var inputService = new YamahaAVRPlatform.InputService("Input Functions");
-
-            var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
-            inputCx.on('get', function(callback, context) {
-                    yamaha.getBasicInfo().then(function(basicInfo) {
-                        callback(false, basicInfo.getCurrentInput());
-                    }, function(error) {
-                        callback(error, 0);
-                    });
-                })
-                .getValue(null, null); // force an asynchronous get
         }
+        var inputService = new YamahaAVRPlatform.InputService("Input Functions");
+
+        var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
+        inputCx.on('get', function(callback, context) {
+                yamaha.getBasicInfo().then(function(basicInfo) {
+                    callback(false, basicInfo.getCurrentInput());
+                }, function(error) {
+                    callback(error, 0);
+                });
+            })
+            .getValue(null, null); // force an asynchronous get
 
         if (this.showInputName == "yes") {
             inputService.addCharacteristic(YamahaAVRPlatform.InputName);
