@@ -22,6 +22,7 @@ config.json
 - show_switch - creates a switch to power on/off the whole receiver 
 - show_bulb - creates a lightbulb for the receiver w/ brightness as a volume slider
 - show_speaker - creates a speaker accessory for the receiver zone with a volume slider
+- by_zone_or_receiver - valid options "zone", "receiver", defaults to "receiver"
 - manual_addresses - Only required if Bonjour/Autodetection doesn't work.
 - expected_devices - Maximum number of accessories created, defaults to 100
 - discovery_timeout - How long to stay in discovery mode, defaults to 30

@@ -68,6 +68,7 @@ function YamahaAVRPlatform(log, config) {
     this.showSwitch = config["show_switch"] || "no";
     this.showBulb = config["show_bulb"] || "no";
     this.showSpeaker = config["show_speaker"] || "no";
+    this.byZoneOrReceiver = config["by_zone_or_receiver"] || "receiver";
     this.setMainInputTo = config["setMainInputTo"];
     this.expectedDevices = config["expected_devices"] || 100;
     this.discoveryTimeout = config["discovery_timeout"] || 30;
@@ -145,35 +146,41 @@ YamahaAVRPlatform.prototype = {
                         }
                         sysIds[sysId] = true;
                         this.log("Found Yamaha " + sysModel + " - " + sysId + ", \"" + name + "\"");
-                        var accessory = new YamahaAVRAccessory(this.log, this.config, name, yamaha, sysConfig);
-                        accessories.push(accessory);
+                        if(byZoneOrReceiver=="receiver") {
+                            var accessory = new YamahaAVRAccessory(this.log, this.config, name, yamaha, sysConfig);
+                            accessories.push(accessory);
+                        }
+                        else if (byZoneOrReceiver=="zone") {
+                            yamaha.getAvailableZones().then(
+                                function(zones) {
+                                    // Only add zones control if more than 1 zone
+                                    if (zones.length > 1) {
+                                        for (var zone in zones) {
 
-                        yamaha.getAvailableZones().then(
-                            function(zones) {
-                                // Only add zones control if more than 1 zone
-                                if (zones.length > 1) {
-                                    for (var zone in zones) {
+                                            yamaha.getBasicInfo(zones[zone]).then(function(basicInfo) {
+                                                if (basicInfo.getVolume() != -999) {
 
-                                        yamaha.getBasicInfo(zones[zone]).then(function(basicInfo) {
-                                            if (basicInfo.getVolume() != -999) {
+                                                    yamaha.getZoneConfig(basicInfo.getZone()).then(
+                                                        function(zoneInfo) {
+                                                            var z = Object.keys(zoneInfo.YAMAHA_AV)[1];
+                                                            zoneName = zoneInfo.YAMAHA_AV[z][0].Config[0].Name[0].Zone[0];
+                                                            this.log("Adding zone controller for", zoneName + " - " + name);
+                                                            var accessory = new YamahaZone(this.log, this.config, zoneName + " - " + name, yamaha, sysConfig, z);
+                                                            accessories.push(accessory);
+                                                        }.bind(this)
+                                                    );
 
-                                                yamaha.getZoneConfig(basicInfo.getZone()).then(
-                                                    function(zoneInfo) {
-                                                        var z = Object.keys(zoneInfo.YAMAHA_AV)[1];
-                                                        zoneName = zoneInfo.YAMAHA_AV[z][0].Config[0].Name[0].Zone[0];
-                                                        this.log("Adding zone controller for", zoneName + " - " + name);
-                                                        var accessory = new YamahaZone(this.log, this.config, zoneName + " - " + name, yamaha, sysConfig, z);
-                                                        accessories.push(accessory);
-                                                    }.bind(this)
-                                                );
+                                                }
+                                            }.bind(this));
 
-                                            }
-                                        }.bind(this));
-
+                                        }
                                     }
-                                }
-                            }.bind(this)
-                        );
+                                }.bind(this)
+                            );
+                        }
+                        else {
+                            debug("Didn't Specify Zone or Receiver Configuration");
+                        }
 
                         // Add buttons for each preset
 
@@ -439,6 +446,7 @@ function YamahaAVRAccessory(log, config, name, yamaha, sysConfig) {
     this.showSwitch = config["show_switch"] || "no";
     this.showBulb = config["show_bulb"] || "no";
     this.showSpeaker = config["show_speaker"] || "no";
+    this.byZoneOrReceiver = config["by_zone_or_receiver"] || "receiver";
 }
 
 YamahaAVRAccessory.prototype = {
