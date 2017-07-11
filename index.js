@@ -477,6 +477,9 @@ YamahaAVRAccessory.prototype = {
             .setCharacteristic(Characteristic.Model, this.sysConfig.YAMAHA_AV.System[0].Config[0].Model_Name[0])
             .setCharacteristic(Characteristic.SerialNumber, this.sysConfig.YAMAHA_AV.System[0].Config[0].System_ID[0]);
         
+        var returnArray = [];
+        returnArray.push(informationService);
+
         if(this.showSwitch=="yes") {
             var switchService = new Service.Switch("Power - "+this.name);
             switchService.getCharacteristic(Characteristic.On)
@@ -497,6 +500,7 @@ YamahaAVRAccessory.prototype = {
                         callback(error, !powerOn); //TODO: Actually determine and send real new status.
                     });
                 }.bind(this));
+            returnArray.push(switchService);
         }
 
         if(this.showBulb=="yes") {
@@ -543,6 +547,7 @@ YamahaAVRAccessory.prototype = {
                     });
                 });
 
+            returnArray.push(mainService);
         }
 
         if(this.showSpeaker=="yes") {
@@ -603,21 +608,21 @@ YamahaAVRAccessory.prototype = {
                     });
                 })
                 .getValue(null, null); // force an asynchronous get
-
+            returnArray.push(audioDeviceService);
         }
-        var inputService = new YamahaAVRPlatform.InputService("Input Functions");
-
-        var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
-        inputCx.on('get', function(callback, context) {
-                yamaha.getBasicInfo().then(function(basicInfo) {
-                    callback(false, basicInfo.getCurrentInput());
-                }, function(error) {
-                    callback(error, 0);
-                });
-            })
-            .getValue(null, null); // force an asynchronous get
-
         if (this.showInputName == "yes") {
+            var inputService = new YamahaAVRPlatform.InputService("Input Functions");
+            var inputCx = inputService.getCharacteristic(YamahaAVRPlatform.Input);
+            inputCx.on('get', function(callback, context) {
+                    yamaha.getBasicInfo().then(function(basicInfo) {
+                        callback(false, basicInfo.getCurrentInput());
+                    }, function(error) {
+                        callback(error, 0);
+                    });
+                })
+                .getValue(null, null); // force an asynchronous get
+
+        
             inputService.addCharacteristic(YamahaAVRPlatform.InputName);
             var nameCx = inputService.getCharacteristic(YamahaAVRPlatform.InputName);
             nameCx.on('get', function(callback, context) {
@@ -630,9 +635,11 @@ YamahaAVRAccessory.prototype = {
                     });
                 })
                 .getValue(null, null); // force an asynchronous get
+            returnArray.push(inputService);
         }
 
-        return [informationService, switchService, audioDeviceService, inputService, mainService];
+        //return [informationService, switchService, audioDeviceService, inputService, mainService];
+        return returnArray;
 
     }
 };
