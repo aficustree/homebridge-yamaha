@@ -551,7 +551,7 @@ YamahaAVRAccessory.prototype = {
         }
 
         if(this.showSpeaker=="yes") {
-            var audioDeviceService = new Service.Speaker("Speaker - ",this.name);
+            var audioDeviceService = new Service.Speaker("Speaker - "+this.name);
             audioDeviceService.addCharacteristic(Characteristic.Volume);
             var volCx = audioDeviceService.getCharacteristic(Characteristic.Volume);
 
@@ -636,8 +636,7 @@ YamahaAVRAccessory.prototype = {
                 })
                 .getValue(null, null); // force an asynchronous get
             returnArray.push(inputService);
-        }
-
+        }     
         //return [informationService, switchService, audioDeviceService, inputService, mainService];
         return returnArray;
 
