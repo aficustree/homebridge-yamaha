@@ -50,7 +50,6 @@ module.exports = function(homebridge) {
     fixInheritance(YamahaAVRPlatform.InputName, Characteristic);
     fixInheritance(YamahaAVRPlatform.InputService, Service);
 
-    //  homebridge.registerAccessory("homebridge-yamaha", "YamahaAVR", YamahaAVRAccessory);
     homebridge.registerPlatform("homebridge-yamaha", "YamahaAVR", YamahaAVRPlatform);
 }
 
@@ -151,11 +150,11 @@ YamahaAVRPlatform.prototype = {
                         }
                         sysIds[sysId] = true;
                         this.log("Found Yamaha " + sysModel + " - " + sysId + ", \"" + name + "\"");
-                        if(byZoneOrReceiver=="receiver") {
+                        if(this.byZoneOrReceiver=="receiver") {
                             var accessory = new YamahaAVRAccessory(this.log, this.config, name, yamaha, sysConfig);
                             accessories.push(accessory);
                         }
-                        else if (byZoneOrReceiver=="zone") {
+                        else if (this.byZoneOrReceiver=="zone") {
                             yamaha.getAvailableZones().then(
                                 function(zones) {
                                     // Only add zones control if more than 1 zone
@@ -184,7 +183,7 @@ YamahaAVRPlatform.prototype = {
                             );
                         }
                         else {
-                            debug("Didn't Specify Zone or Receiver Configuration");
+                            debug("Didn't Specify Zone or Receiver Configuration!");
                         }
 
                         // Add buttons for each preset
